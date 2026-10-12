@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CrewClock – The Art of Lawn Care</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111; color: #f0f0f0; font-family: 'Barlow Condensed', Impact, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+  .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; align-items: center; padding-bottom: 40px; }
+
+  /* HEADER */
+  .header { width: 100%; background: #1a1a1a; border-bottom: 4px solid #1d7f0c; padding: 89px 20px 21px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
+  .logo-img { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 62px; height: 62px; border-radius: 50%; object-fit: cover; border: 2px solid #1d7f0c; }
+  .crew-btn-wrap { position: absolute; top: 18px; right: 16px; display: flex; flex-direction: column; align-items: flex-end; }
+  .crew-btn { background: #8caf7e; border: none; border-radius: 6px; color: #1a1a1a; font-family: 'Barlow Condensed', Impact, sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 2px; padding: 7px 13px; cursor: pointer; text-transform: uppercase; margin-bottom: 14px; }
+  .crew-dropdown { position: absolute; right: 0; top: 110%; background: #1a1a1a; border: 1px solid #1d7f0c; border-radius: 8px; overflow: hidden; z-index: 100; min-width: 120px; display: none; }
+  .crew-dropdown.open { display: block; }
+  .crew-option { padding: 12px 18px; cursor: pointer; font-family: 'Barlow Condensed', Impact, sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 1px; color: #f0f0f0; }
+  .crew-option:hover, .crew-option.active { color: #1d7f0c; background: #111; }
+  .logo-text { font-size: 35px; font-weight: 900; letter-spacing: 2px; color: #3afe18; text-transform: uppercase; line-height: 1.02; }
+  .sub-logo { font-size: 17px; font-weight: 800; color: #8caf7e; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; }
+
+  /* TIMER */
+  .timer-box { width: 100%; padding: 19px 20px 20px; text-align: center; border-bottom: 4px solid #1d7f0c; transition: background 0.4s; }
+  .timer-box.idle { background: #161616; }
+  .timer-box.driving { background: #0f172a; border-bottom-color: #3b82f6; }
+  .timer-box.working { background: #052e16; border-bottom-color: #22c55e; }
+  .timer-label { font-size: 16px; font-weight: 800; letter-spacing: 4px; color: #8caf7e; text-transform: uppercase; margin-bottom: 6px; }
+  .timer-display { font-size: 64px; font-weight: 900; letter-spacing: 2px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .timer-box.idle .timer-display { color: #333; }
+  .timer-box.driving .timer-display { color: #60a5fa; }
+  .timer-box.working .timer-display { color: #4ade80; }
+
+  /* CONTROLS */
+  .section-label { font-size: 16px; font-weight: 800; letter-spacing: 3px; color: #8caf7e; text-transform: uppercase; text-align: center; padding: 19px 16px 12px; width: 100%; }
+  .btn-row { display: flex; gap: 12px; width: 100%; padding: 0 16px; margin-bottom: 37px; }
+  .btn { flex: 1; padding: 24px 12px; border-radius: 10px; border: none; font-size: 22px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; color: #fff; font-family: 'Barlow Condensed', Impact, sans-serif; text-align: center; transition: opacity 0.2s; }
+  .btn:disabled { background: #222 !important; color: #444; cursor: not-allowed; opacity: 0.5; }
+  .btn-drive { background: #3b82f6; box-shadow: 0 5px 0 #3b82f688; }
+  .btn-job { background: #15803d; box-shadow: 0 5px 0 #15803d88; }
+
+  /* DIVIDER */
+  .divider { width: 100%; height: 4px; background: #1d7f0c; margin: 0; }
+
+  /* STATS */
+  .stats-section-label { font-size: 16px; font-weight: 800; letter-spacing: 3px; color: #8caf7e; text-transform: uppercase; text-align: center; padding: 19px 16px 18px; width: 100%; }
+  .stats-row { display: flex; gap: 10px; padding: 0 16px; width: 100%; margin-bottom: 8px; }
+  .stat-box { flex: 1; background: #1a1a1a; border-radius: 8px; padding: 16px 10px; border-left: 3px solid; text-align: center; }
+  .stat-box.drive { border-left-color: #3b82f6; }
+  .stat-box.job { border-left-color: #22c55e; }
+  .stat-box.jobs { border-left-color: #fbbf24; }
+  .stat-label { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: #666; text-transform: uppercase; }
+  .stat-val { font-size: 28px; font-weight: 800; margin-top: 4px; }
+  .stat-box.drive .stat-val { color: #60a5fa; }
+  .stat-box.job .stat-val { color: #4ade80; }
+  .stat-box.jobs .stat-val { color: #fbbf24; }
+
+  /* LOG & EXPORT */
+  .log-toggle { width: calc(100% - 32px); margin: 10px 16px 0; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #aaa; padding: 12px; font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; font-family: 'Barlow Condensed', Impact, sans-serif; }
+  .log-entries { width: calc(100% - 32px); margin: 10px 16px 0; }
+  .log-entry { border-radius: 0 6px 6px 0; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; background: #161616; border-left: 3px solid; }
+  .log-entry.drive { border-left-color: #3b82f6; }
+  .log-entry.job { border-left-color: #22c55e; }
+  .log-entry.lunch { border-left-color: #f59e0b; }
+  .log-entry-name { font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+  .log-entry.drive .log-entry-name { color: #60a5fa; }
+  .log-entry.job .log-entry-name { color: #4ade80; }
+  .log-entry.lunch .log-entry-name { color: #f59e0b; }
+  .log-entry-time { font-size: 11px; color: #555; margin-top: 2px; }
+  .log-entry-dur { font-size: 22px; font-weight: 800; color: #f0f0f0; }
+  .export-btn { width: calc(100% - 32px); margin: 8px 16px 0; padding: 14px; background: #1e3a1e; border: 1px solid #22c55e33; border-radius: 8px; color: #4ade80; font-size: 15px; font-weight: 700; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; font-family: 'Barlow Condensed', Impact, sans-serif; }
+  .sync-btn { width: calc(100% - 32px); margin: 8px 16px 0; padding: 14px; background: #1a2e1a; border: 1px solid #1d7f0c; border-radius: 8px; color: #8caf7e; font-size: 15px; font-weight: 700; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; font-family: 'Barlow Condensed', Impact, sans-serif; }
+  .sync-btn.success { color: #4ade80; }
+  .sync-btn.error { color: #f87171; }
+
+  /* MODALS */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: none; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #1a1a1a; width: 100%; max-width: 480px; border-radius: 16px 16px 0 0; padding: 24px 20px 40px; border-top: 3px solid #f59e0b; }
+  .modal-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; margin-bottom: 16px; color: #f59e0b; text-transform: uppercase; }
+  .client-list { max-height: 320px; overflow-y: auto; }
+  .client-item { padding: 16px; border-radius: 8px; background: #111; margin-bottom: 10px; cursor: pointer; border: 1px solid #2a2a2a; display: flex; justify-content: space-between; align-items: center; }
+  .client-name { font-size: 20px; font-weight: 800; color: #f0f0f0; }
+  .client-addr { font-size: 13px; color: #666; }
+  .client-arrow { font-size: 22px; color: #4ade80; }
+  .add-client-btn { width: 100%; margin-top: 12px; padding: 20px 8px; border-radius: 8px; border: none; font-size: 16px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; background: #92400e; color: #fff; font-family: 'Barlow Condensed', Impact, sans-serif; }
+  .modal-input { width: 100%; background: #111; border: 1px solid #333; border-radius: 6px; color: #f0f0f0; padding: 12px 14px; font-size: 16px; margin-bottom: 10px; font-family: 'Barlow Condensed', Impact, sans-serif; }
+  .save-btn { width: 100%; padding: 24px 12px; border-radius: 10px; border: none; font-size: 22px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; background: #15803d; color: #fff; font-family: 'Barlow Condensed', Impact, sans-serif; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <img class="logo-img" src="data:image/jpeg;base64,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" alt="Logo">
+    <div class="crew-btn-wrap">
+      <button class="crew-btn" id="crewBtn" onclick="toggleCrewMenu()">Crew 1 ▾</button>
+      <div class="crew-dropdown" id="crewDropdown">
+        <div class="crew-option active" onclick="selectCrew(1)">Crew 1</div>
+        <div class="crew-option" onclick="selectCrew(2)">Crew 2</div>
+        <div class="crew-option" onclick="selectCrew(3)">Crew 3</div>
+      </div>
+    </div>
+    <div class="logo-text">The Art<br>of Lawn Care</div>
+    <div class="sub-logo">CrewClock Time Tracker</div>
+  </div>
+
+  <!-- TIMER -->
+  <div class="timer-box idle" id="timerBox">
+    <div class="timer-label" id="timerLabel">Timer</div>
+    <div class="timer-display" id="timerDisplay">0m</div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="section-label">Controls</div>
+  <div class="btn-row">
+    <button class="btn btn-drive" id="driveBtn" onclick="handleDrive()">Drive</button>
+    <button class="btn btn-job" id="jobBtn" onclick="handleJob()">Start Job</button>
+  </div>
+
+  <!-- DIVIDER -->
+  <div class="divider"></div>
+
+  <!-- STATS -->
+  <div class="stats-section-label">Today's Totals</div>
+  <div class="stats-row">
+    <div class="stat-box drive">
+      <div class="stat-label">Driving</div>
+      <div class="stat-val" id="totalDrive">0m</div>
+    </div>
+    <div class="stat-box job">
+      <div class="stat-label">On Job</div>
+      <div class="stat-val" id="totalJob">0m</div>
+    </div>
+    <div class="stat-box jobs">
+      <div class="stat-label">Job Count</div>
+      <div class="stat-val" id="totalJobs">0</div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <button class="log-toggle" id="logToggle" style="display:none" onclick="toggleLog()">▼ View Log</button>
+  <div class="log-entries" id="logEntries" style="display:none"></div>
+
+  <!-- EXPORT & SYNC -->
+  <div id="clearSection" style="display:none; width:calc(100% - 32px); margin:8px 16px 0;">
+    <button id="clearBtn" style="width:100%; padding:14px; background:#7f1d1d; border:1px solid #ef444433; border-radius:8px; color:#f87171; font-size:15px; font-weight:700; letter-spacing:1px; cursor:pointer; text-transform:uppercase; font-family:'Barlow Condensed',sans-serif;" onclick="showClearConfirm()">🗑 Clear Log</button>
+    <div id="clearConfirm" style="display:none; background:#7f1d1d; border-radius:8px; padding:12px 14px; margin-top:8px;">
+      <div style="color:#fff; font-weight:800; font-size:14px; margin-bottom:10px; letter-spacing:1px;">Clear all entries?</div>
+      <div style="display:flex; gap:8px;">
+        <button onclick="clearLog()" style="flex:1; padding:10px; background:#ef4444; border:none; border-radius:6px; color:#fff; font-weight:800; font-size:14px; cursor:pointer; font-family:'Barlow Condensed',sans-serif; letter-spacing:1px;">Yes, Clear</button>
+        <button onclick="hideClearConfirm()" style="flex:1; padding:10px; background:#333; border:none; border-radius:6px; color:#fff; font-weight:800; font-size:14px; cursor:pointer; font-family:'Barlow Condensed',sans-serif; letter-spacing:1px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <button class="sync-btn" id="syncBtn" style="display:none" onclick="syncSheets()">📤 Sync to Google Sheets</button>
+
+</div>
+
+<!-- CLIENT PICKER MODAL -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal-box">
+    <div class="modal-title">Select Client</div>
+    <div class="client-list" id="clientList"></div>
+    <button class="add-client-btn" onclick="openAddClient()">+ Add New Client</button>
+  </div>
+</div>
+
+<!-- ADD CLIENT MODAL -->
+<div class="modal-overlay" id="addClientModal">
+  <div class="modal-box">
+    <div class="modal-title">New Client</div>
+    <input class="modal-input" id="newClientName" placeholder="Last name (e.g. Johnson)">
+    <input class="modal-input" id="newClientAddr" placeholder="Address (e.g. 123 Oak St)">
+    <button class="save-btn" onclick="saveNewClient()">Save Client</button>
+  </div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwoL_drU8u8nQdJPl292_14uNEu8zmSgeLYq1-vgDG0hx7bBUXVuf7b-zDBZ63nByf4/exec";
+
+const INITIAL_CLIENTS = [
+  { id: 1, name: "Take 5 Oil Change", address: "900 W Main St" },
+  { id: 2, name: "O'Reilly Auto Parts", address: "2313 Hwy 44 W" },
+  { id: 3, name: "Williams", address: "789 Pine Rd" },
+  { id: 4, name: "Taylor", address: "321 Maple Dr" },
+  { id: 5, name: "Lunch", address: "Break" },
+];
+
+let mode = "idle"; // idle | driving | working
+let elapsed = 0;
+let startTs = null;
+let timerInterval = null;
+let log = [];
+let clients = [...INITIAL_CLIENTS];
+let selectedClient = null;
+let crew = 1;
+let showLog = false;
+
+function formatDuration(seconds) {
+  return Math.floor((seconds + 30) / 60) + "m";
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function updateTimer() {
+  elapsed++;
+  document.getElementById("timerDisplay").textContent = formatDuration(elapsed);
+}
+
+function startInterval() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimer, 1000);
+}
+
+function stopInterval() {
+  clearInterval(timerInterval);
+}
+
+function updateUI() {
+  const box = document.getElementById("timerBox");
+  const label = document.getElementById("timerLabel");
+  const driveBtn = document.getElementById("driveBtn");
+  const jobBtn = document.getElementById("jobBtn");
+
+  box.className = "timer-box " + mode;
+
+  if (mode === "idle") {
+    label.textContent = "Timer";
+    driveBtn.textContent = "Start Drive";
+    driveBtn.disabled = false;
+    driveBtn.style.color = "#fff";
+    jobBtn.textContent = "Start Job";
+    jobBtn.disabled = false;
+    jobBtn.style.color = "#fff";
+  } else if (mode === "driving") {
+    label.textContent = "Drive time";
+    driveBtn.textContent = "Stop Drive";
+    driveBtn.disabled = false;
+    driveBtn.style.color = "#fca5a5";
+    jobBtn.textContent = "Start Job";
+    jobBtn.disabled = false;
+    jobBtn.style.color = "#fff";
+  } else if (mode === "working") {
+    label.textContent = "Job time — " + (selectedClient ? selectedClient.name : "");
+    driveBtn.textContent = "Start Drive";
+    driveBtn.disabled = true;
+    jobBtn.textContent = "Stop Job";
+    jobBtn.disabled = false;
+    jobBtn.style.color = "#fca5a5";
+  }
+
+  // Stats
+  const totalDrive = log.filter(e => e.type === "Drive").reduce((a,b) => a + b.duration, 0);
+  const totalJob = log.filter(e => e.type === "Job").reduce((a,b) => a + b.duration, 0);
+  const jobCount = log.filter(e => e.type === "Job").length;
+  document.getElementById("totalDrive").textContent = formatDuration(totalDrive);
+  document.getElementById("totalJob").textContent = formatDuration(totalJob);
+  document.getElementById("totalJobs").textContent = jobCount;
+
+  // Log toggle
+  const logToggle = document.getElementById("logToggle");
+  const syncBtn = document.getElementById("syncBtn");
+  if (log.length > 0) {
+    logToggle.style.display = "block";
+    logToggle.textContent = (showLog ? "▲ Hide Log" : "▼ View Log (" + log.length + " entries)");
+    syncBtn.style.display = "block";
+  } else {
+    logToggle.style.display = "none";
+    syncBtn.style.display = "none";
+  }
+
+  // Render log
+  if (showLog) {
+    const container = document.getElementById("logEntries");
+    container.innerHTML = log.map(e => {
+      const isLunch = e.client === "Lunch";
+      const cls = e.type === "Drive" ? "drive" : isLunch ? "lunch" : "job";
+      const icon = e.type === "Drive" ? "🚗 DRIVE" : isLunch ? "🍽 " + e.client : "🌿 " + e.client;
+      return `<div class="log-entry ${cls}">
+        <div>
+          <div class="log-entry-name">${icon}</div>
+          <div class="log-entry-time">${formatTime(new Date(e.startTs))} → ${formatTime(new Date(e.endTs))}</div>
+        </div>
+        <div class="log-entry-dur">${formatDuration(e.duration)}</div>
+      </div>`;
+    }).join("");
+  }
+}
+
+function handleDrive() {
+  if (mode === "idle") {
+    mode = "driving";
+    startTs = Date.now();
+    elapsed = 0;
+    startInterval();
+  } else if (mode === "driving") {
+    stopInterval();
+    log.push({ type: "Drive", client: null, address: null, startTs, endTs: Date.now(), duration: elapsed });
+    mode = "idle";
+    elapsed = 0;
+    document.getElementById("timerDisplay").textContent = "0m";
+  }
+  updateUI();
+}
+
+function handleJob() {
+  if (mode === "working") {
+    stopInterval();
+    log.push({ type: "Job", client: selectedClient.name, address: selectedClient.address, startTs, endTs: Date.now(), duration: elapsed });
+    mode = "idle";
+    selectedClient = null;
+    elapsed = 0;
+    document.getElementById("timerDisplay").textContent = "0m";
+    updateUI();
+  } else {
+    if (mode === "driving") {
+      stopInterval();
+      log.push({ type: "Drive", client: null, address: null, startTs, endTs: Date.now(), duration: elapsed });
+      mode = "idle";
+      elapsed = 0;
+    }
+    openClientModal();
+  }
+}
+
+function openClientModal() {
+  renderClientList();
+  document.getElementById("clientModal").classList.add("open");
+}
+
+function closeClientModal() {
+  document.getElementById("clientModal").classList.remove("open");
+}
+
+function renderClientList() {
+  document.getElementById("clientList").innerHTML = clients.map(c =>
+    `<div class="client-item" onclick="selectClient(${c.id})">
+      <div>
+        <div class="client-name">${c.name}</div>
+        <div class="client-addr">${c.address}</div>
+      </div>
+      <span class="client-arrow">▶</span>
+    </div>`
+  ).join("");
+}
+
+function selectClient(id) {
+  selectedClient = clients.find(c => c.id === id);
+  closeClientModal();
+  mode = "working";
+  startTs = Date.now();
+  elapsed = 0;
+  startInterval();
+  updateUI();
+}
+
+function openAddClient() {
+  closeClientModal();
+  document.getElementById("addClientModal").classList.add("open");
+}
+
+function saveNewClient() {
+  const name = document.getElementById("newClientName").value.trim();
+  const addr = document.getElementById("newClientAddr").value.trim();
+  if (!name) return;
+  clients.push({ id: Date.now(), name, address: addr });
+  document.getElementById("newClientName").value = "";
+  document.getElementById("newClientAddr").value = "";
+  document.getElementById("addClientModal").classList.remove("open");
+}
+
+function toggleLog() {
+  showLog = !showLog;
+  document.getElementById("logEntries").style.display = showLog ? "block" : "none";
+  updateUI();
+}
+
+function toggleCrewMenu() {
+  document.getElementById("crewDropdown").classList.toggle("open");
+}
+
+function selectCrew(n) {
+  crew = n;
+  document.getElementById("crewBtn").textContent = "Crew " + n + " ▾";
+  document.querySelectorAll(".crew-option").forEach((el, i) => {
+    el.classList.toggle("active", i + 1 === n);
+  });
+  document.getElementById("crewDropdown").classList.remove("open");
+}
+
+
+
+async function syncSheets() {
+  const btn = document.getElementById("syncBtn");
+  btn.textContent = "⏳ Syncing...";
+  btn.disabled = true;
+  const today = new Date().toLocaleDateString();
+  const rows = log.map(e => [
+    today,
+    "Crew " + crew,
+    e.client === "Lunch" ? "Lunch" : e.type,
+    e.client || "—",
+    e.address || "—",
+    formatTime(new Date(e.startTs)),
+    formatTime(new Date(e.endTs)),
+    Math.floor((e.duration + 30) / 60)
+  ]);
+  rows.push(["--------","--------","--------","--------","--------","--------","--------","--------"]);
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ rows })
+    });
+    const data = await res.json();
+    if (data.status === "ok") {
+      btn.textContent = "✅ Synced to Google Sheets!";
+      btn.className = "sync-btn success";
+    } else {
+      throw new Error("Bad response");
+    }
+  } catch(e) {
+    btn.textContent = "❌ Sync Failed — " + e.message;
+    btn.className = "sync-btn error";
+  }
+  btn.disabled = false;
+  setTimeout(() => {
+    btn.textContent = "📤 Sync to Google Sheets";
+    btn.className = "sync-btn";
+  }, 5000);
+}
+
+function showClearConfirm() {
+  document.getElementById("clearConfirm").style.display = "block";
+  document.getElementById("clearBtn").style.display = "none";
+}
+function hideClearConfirm() {
+  document.getElementById("clearConfirm").style.display = "none";
+  document.getElementById("clearBtn").style.display = "block";
+}
+function clearLog() {
+  log = [];
+  showLog = false;
+  document.getElementById("logEntries").style.display = "none";
+  document.getElementById("logEntries").innerHTML = "";
+  hideClearConfirm();
+  updateUI();
+}
+
+// Close modals on overlay click
+document.getElementById("clientModal").addEventListener("click", function(e) {
+  if (e.target === this) closeClientModal();
+});
+document.getElementById("addClientModal").addEventListener("click", function(e) {
+  if (e.target === this) this.classList.remove("open");
+});
+document.addEventListener("click", function(e) {
+  if (!e.target.closest(".crew-btn-wrap")) {
+    document.getElementById("crewDropdown").classList.remove("open");
+  }
+});
+
+updateUI();
+</script>
+</body>
+</html>
